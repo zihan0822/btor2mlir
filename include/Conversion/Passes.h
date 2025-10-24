@@ -7,8 +7,6 @@
 #include "Conversion/BtorToMemref/ConvertBtorToMemrefPass.h"
 #include "Conversion/BtorToVector/ConvertBtorToVectorPass.h"
 
-#include "Conversion/ebpfToLLVM/ConvertebpfToLLVMPass.h"
-
 namespace mlir {
 namespace btor {
 
@@ -17,12 +15,6 @@ namespace btor {
 #include "Conversion/Passes.h.inc"
 
 } // namespace btor
-
-namespace ebpf {
-/// Generate the code for registering conversion passes.
-#define GEN_PASS_REGISTRATION
-#include "Conversion/Passes.h.inc"
-} // namespace ebpf
 
 } // namespace mlir
 
