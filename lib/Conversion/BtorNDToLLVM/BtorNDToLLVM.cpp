@@ -80,9 +80,9 @@ struct NDStateOpLowering : public ConvertOpToLLVMPattern<btor::NDStateOp> {
     auto module = op->getParentOfType<ModuleOp>();
     auto callND = getNDValueHelper(op, rewriter, module, opType);
     // add helper function for printing
-    std::string printHelper = "btor2mlir_print_state_num";
-    createPrintFunctionHelper(op, callND, printHelper, rewriter, module,
-                              opType);
+    // std::string printHelper = "btor2mlir_print_state_num";
+    // createPrintFunctionHelper(op, callND, printHelper, rewriter, module,
+    //                           opType);
     if (opType.getIntOrFloatBitWidth() <
         callND.getType().getIntOrFloatBitWidth()) {
       rewriter.replaceOpWithNewOp<LLVM::TruncOp>(op, TypeRange({opType}),
@@ -103,9 +103,9 @@ struct InputOpLowering : public ConvertOpToLLVMPattern<btor::InputOp> {
     auto module = op->getParentOfType<ModuleOp>();
     auto callND = getNDValueHelper(op, rewriter, module, opType);
     // add helper function for printing
-    std::string printHelper = "btor2mlir_print_input_num";
-    createPrintFunctionHelper(op, callND, printHelper, rewriter, module,
-                              opType);
+    // std::string printHelper = "btor2mlir_print_input_num";
+    // createPrintFunctionHelper(op, callND, printHelper, rewriter, module,
+    //                           opType);
     if (opType.getIntOrFloatBitWidth() <
         callND.getType().getIntOrFloatBitWidth()) {
       rewriter.replaceOpWithNewOp<LLVM::TruncOp>(op, TypeRange({opType}),
