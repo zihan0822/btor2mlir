@@ -344,55 +344,55 @@ LogicalResult AssertNotOpLowering::matchAndRewrite(
     btor::AssertNotOp assertOp, OpAdaptor adaptor,
     ConversionPatternRewriter &rewriter) const {
 
-  auto loc = assertOp.getLoc();
-  Type i64Type = rewriter.getI64Type();
-  Value notBad = rewriter.create<btor::NotOp>(loc, adaptor.arg());
+  // auto loc = assertOp.getLoc();
+  // Type i64Type = rewriter.getI64Type();
+  // Value notBad = rewriter.create<btor::NotOp>(loc, adaptor.arg());
 
-  // Insert the `__VERIFIER_error` declaration if necessary.
-  auto module = assertOp->getParentOfType<ModuleOp>();
-  auto verifierError = "__VERIFIER_error";
-  auto verifierErrorFunc = module.lookupSymbol<LLVM::LLVMFuncOp>(verifierError);
-  auto verifierAssert = "__VERIFIER_assert";
-  auto verifierAssertFunc =
-      module.lookupSymbol<LLVM::LLVMFuncOp>(verifierAssert);
-  auto tracker = "__TRACKER";
-  auto trackerFunc = module.lookupSymbol<LLVM::LLVMFuncOp>(tracker);
-  if (!verifierErrorFunc) {
-    OpBuilder::InsertionGuard guard(rewriter);
-    rewriter.setInsertionPointToStart(module.getBody());
-    auto voidNoArgFuncTy =
-        LLVM::LLVMFunctionType::get(LLVM::LLVMVoidType::get(getContext()), {});
-    verifierErrorFunc = rewriter.create<LLVM::LLVMFuncOp>(
-        rewriter.getUnknownLoc(), verifierError, voidNoArgFuncTy);
-    auto verifierAssertFuncTy = LLVM::LLVMFunctionType::get(
-        LLVM::LLVMVoidType::get(getContext()), {notBad.getType(), i64Type});
-    verifierAssertFunc = rewriter.create<LLVM::LLVMFuncOp>(
-        rewriter.getUnknownLoc(), verifierAssert, verifierAssertFuncTy);
-    trackerFunc = rewriter.create<LLVM::LLVMFuncOp>(rewriter.getUnknownLoc(),
-                                                    tracker, voidNoArgFuncTy);
-  }
+  // // Insert the `__VERIFIER_error` declaration if necessary.
+  // auto module = assertOp->getParentOfType<ModuleOp>();
+  // auto verifierError = "__VERIFIER_error";
+  // auto verifierErrorFunc = module.lookupSymbol<LLVM::LLVMFuncOp>(verifierError);
+  // auto verifierAssert = "__VERIFIER_assert";
+  // auto verifierAssertFunc =
+  //     module.lookupSymbol<LLVM::LLVMFuncOp>(verifierAssert);
+  // // auto tracker = "__TRACKER";
+  // // auto trackerFunc = module.lookupSymbol<LLVM::LLVMFuncOp>(tracker);
+  // if (!verifierErrorFunc) {
+  //   OpBuilder::InsertionGuard guard(rewriter);
+  //   rewriter.setInsertionPointToStart(module.getBody());
+  //   auto voidNoArgFuncTy =
+  //       LLVM::LLVMFunctionType::get(LLVM::LLVMVoidType::get(getContext()), {});
+  //   verifierErrorFunc = rewriter.create<LLVM::LLVMFuncOp>(
+  //       rewriter.getUnknownLoc(), verifierError, voidNoArgFuncTy);
+  //   auto verifierAssertFuncTy = LLVM::LLVMFunctionType::get(
+  //       LLVM::LLVMVoidType::get(getContext()), {notBad.getType(), i64Type});
+  //   verifierAssertFunc = rewriter.create<LLVM::LLVMFuncOp>(
+  //       rewriter.getUnknownLoc(), verifierAssert, verifierAssertFuncTy);
+  //   // trackerFunc = rewriter.create<LLVM::LLVMFuncOp>(rewriter.getUnknownLoc(),
+  //   //                                                 tracker, voidNoArgFuncTy);
+  // }
 
-  // Split block at `assert` operation.
-  Block *opBlock = rewriter.getInsertionBlock();
-  auto opPosition = rewriter.getInsertionPoint();
-  Block *continuationBlock = rewriter.splitBlock(opBlock, opPosition);
-  rewriter.create<LLVM::CallOp>(loc, trackerFunc, llvm::None);
+  // // Split block at `assert` operation.
+  // Block *opBlock = rewriter.getInsertionBlock();
+  // auto opPosition = rewriter.getInsertionPoint();
+  // Block *continuationBlock = rewriter.splitBlock(opBlock, opPosition);
+  // // rewriter.create<LLVM::CallOp>(loc, trackerFunc, llvm::None);
 
-  // Generate IR to call `abort`.
-  Block *failureBlock = rewriter.createBlock(opBlock->getParent());
-  Value propertyNumber = rewriter.create<LLVM::ConstantOp>(
-      loc, i64Type, rewriter.getIntegerAttr(i64Type, adaptor.id()));
-  rewriter.create<LLVM::CallOp>(loc, verifierAssertFunc,
-                                ValueRange({notBad, propertyNumber}));
-  rewriter.create<LLVM::CallOp>(loc, verifierErrorFunc, llvm::None);
-  rewriter.create<LLVM::CallOp>(loc, trackerFunc, llvm::None);
-  rewriter.create<LLVM::UnreachableOp>(loc);
+  // // Generate IR to call `abort`.
+  // Block *failureBlock = rewriter.createBlock(opBlock->getParent());
+  // Value propertyNumber = rewriter.create<LLVM::ConstantOp>(
+  //     loc, i64Type, rewriter.getIntegerAttr(i64Type, adaptor.id()));
+  // rewriter.create<LLVM::CallOp>(loc, verifierAssertFunc,
+  //                               ValueRange({notBad, propertyNumber}));
+  // rewriter.create<LLVM::CallOp>(loc, verifierErrorFunc, llvm::None);
+  // // rewriter.create<LLVM::CallOp>(loc, trackerFunc, llvm::None);
+  // rewriter.create<LLVM::UnreachableOp>(loc);
 
-  // Generate assertion test.
-  rewriter.setInsertionPointToEnd(opBlock);
-  rewriter.replaceOpWithNewOp<LLVM::CondBrOp>(assertOp, notBad,
-                                              continuationBlock, failureBlock);
-
+  // // Generate assertion test.
+  // rewriter.setInsertionPointToEnd(opBlock);
+  // rewriter.replaceOpWithNewOp<LLVM::CondBrOp>(assertOp, notBad,
+  //                                             continuationBlock, failureBlock);
+  rewriter.eraseOp(assertOp);
   return success();
 }
 
@@ -633,23 +633,24 @@ SModOpLowering::matchAndRewrite(mlir::btor::SModOp smodOp, OpAdaptor adaptor,
 LogicalResult ConstraintOpLowering::matchAndRewrite(
     btor::ConstraintOp op, OpAdaptor adaptor,
     ConversionPatternRewriter &rewriter) const {
-  auto opType = typeConverter->convertType(op.constraint().getType());
+  // auto opType = typeConverter->convertType(op.constraint().getType());
 
-  // Insert the `__SEA_assume` declaration if necessary.
-  auto module = op->getParentOfType<ModuleOp>();
-  auto seaAssume = "__SEA_assume";
-  auto seaAssumeFunc = module.lookupSymbol<LLVM::LLVMFuncOp>(seaAssume);
-  if (!seaAssumeFunc) {
-    OpBuilder::InsertionGuard guard(rewriter);
-    rewriter.setInsertionPointToStart(module.getBody());
-    auto seaAssumeFuncTy = LLVM::LLVMFunctionType::get(
-        LLVM::LLVMVoidType::get(getContext()), opType);
-    seaAssumeFunc = rewriter.create<LLVM::LLVMFuncOp>(
-        rewriter.getUnknownLoc(), seaAssume, seaAssumeFuncTy);
-  }
+  // // Insert the `__SEA_assume` declaration if necessary.
+  // auto module = op->getParentOfType<ModuleOp>();
+  // auto seaAssume = "__SEA_assume";
+  // auto seaAssumeFunc = module.lookupSymbol<LLVM::LLVMFuncOp>(seaAssume);
+  // if (!seaAssumeFunc) {
+  //   OpBuilder::InsertionGuard guard(rewriter);
+  //   rewriter.setInsertionPointToStart(module.getBody());
+  //   auto seaAssumeFuncTy = LLVM::LLVMFunctionType::get(
+  //       LLVM::LLVMVoidType::get(getContext()), opType);
+  //   seaAssumeFunc = rewriter.create<LLVM::LLVMFuncOp>(
+  //       rewriter.getUnknownLoc(), seaAssume, seaAssumeFuncTy);
+  // }
 
-  rewriter.replaceOpWithNewOp<LLVM::CallOp>(op, seaAssumeFunc,
-                                            adaptor.constraint());
+  // rewriter.replaceOpWithNewOp<LLVM::CallOp>(op, seaAssumeFunc,
+  //                                           adaptor.constraint());
+  rewriter.eraseOp(op);                                         
   return success();
 }
 

@@ -139,9 +139,9 @@ struct ArrayOpLowering : public ConvertOpToLLVMPattern<mlir::btor::ArrayOp> {
           getNDValueHelper(arrayOp, rewriter, module, memType.getElementType());
       rewriter.create<memref::StoreOp>(loc, callND, newArray,
                                        ValueRange({idx}));
-      std::string printHelper = "btor2mlir_print_array_state_num";
-      createPrintFunctionHelper(arrayOp, callND, i, printHelper, rewriter,
-                                module, memType.getElementType());
+      // std::string printHelper = "btor2mlir_print_array_state_num";
+      // createPrintFunctionHelper(arrayOp, callND, i, printHelper, rewriter,
+      //                           module, memType.getElementType());
     }
     rewriter.replaceOp(arrayOp, newArray);
     return success();

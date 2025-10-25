@@ -40,9 +40,10 @@ public:
   /// Constructors and Destructors
   ///===----------------------------------------------------------------------===//
 
-  Deserialize(MLIRContext *context, const std::string &s)
+  Deserialize(MLIRContext *context, ModuleOp module, const std::string &s)
       : m_context(context), m_builder(OpBuilder(m_context)),
         m_unknownLoc(UnknownLoc::get(m_context)) {
+    m_builder.setInsertionPointToStart(module.getBody());
     m_modelFile = fopen(s.c_str(), "r");
     m_sourceFile = m_builder.getStringAttr(s);
   }
