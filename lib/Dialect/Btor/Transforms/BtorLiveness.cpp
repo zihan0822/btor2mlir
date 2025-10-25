@@ -134,7 +134,7 @@ struct BtorLivenessPass : public BtorLivenessBase<BtorLivenessPass> {
     Operation *rootOp = getOperation();
     auto module_regions = rootOp->getRegions();
     auto &blocks = module_regions.front().getBlocks();
-    auto &funcOp = blocks.front().getOperations().front();
+    auto &funcOp = *std::next(blocks.front().getOperations().begin());
     auto &regions = funcOp.getRegion(0);
     assert(regions.getBlocks().size() == 2);
     auto &nextBlock = regions.getBlocks().back();

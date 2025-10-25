@@ -2,6 +2,7 @@
 #include "Dialect/Btor/IR/Btor.h"
 
 #include "mlir/Dialect/Arithmetic/IR/Arithmetic.h"
+#include "mlir/Dialect/MemRef/IR/MemRef.h"
 #include "mlir/Dialect/StandardOps/IR/Ops.h"
 #include "mlir/IR/Builders.h"
 #include "mlir/IR/BuiltinOps.h"
@@ -573,11 +574,23 @@ OwningOpRef<FuncOp> Deserialize::buildMainFunction() {
     returnTypes[i] = getTypeOf(m_states.at(i));
     assert(returnTypes[i]);
   }
+  auto counterType = MemRefType::get({}, m_builder.getI64Type());
+  auto globalCounter = m_builder.create<memref::GlobalOp>(
+    m_unknownLoc,
+    "sim_counter",
+    m_builder.getStringAttr("public"),
+    counterType,
+    Attribute(),
+    false,
+    IntegerAttr()
+  );
+
   // create main function
   OperationState state(m_unknownLoc, FuncOp::getOperationName());
   FuncOp::build(m_builder, state, "_main",
                 FunctionType::get(m_context, {}, {}));
   OwningOpRef<FuncOp> funcOp = cast<FuncOp>(Operation::create(state));
+
   Region &region = funcOp->getBody();
   OpBuilder::InsertionGuard guard(m_builder);
   auto *body = m_builder.createBlock(&region, {}, {}, {});
@@ -590,6 +603,12 @@ OwningOpRef<FuncOp> Deserialize::buildMainFunction() {
   Block *loopBlock =
       m_builder.createBlock(body->getParent(), {}, {returnTypes}, {returnLocs});
   auto nextResults = buildNextFunction(returnTypes, loopBlock);
+  auto counterRef = m_builder.create<memref::GetGlobalOp>(m_unknownLoc, counterType, "sim_counter");
+  auto currentValue = m_builder.create<memref::LoadOp>(m_unknownLoc, counterRef);
+  auto one = m_builder.create<arith::ConstantOp>(
+    m_unknownLoc, m_builder.getI64IntegerAttr(1));
+  auto newValue = m_builder.create<arith::AddIOp>(m_unknownLoc, currentValue, one);
+  m_builder.create<memref::StoreOp>(m_unknownLoc, newValue, counterRef);
   m_builder.create<BranchOp>(m_unknownLoc, loopBlock, nextResults);
   // add call to branch from original basic block
   m_builder.setInsertionPoint(body, opPosition);
@@ -600,12 +619,12 @@ OwningOpRef<FuncOp> Deserialize::buildMainFunction() {
 
 static OwningOpRef<ModuleOp> deserializeModule(const llvm::MemoryBuffer *input,
                                                MLIRContext *context) {
-  context->loadDialect<btor::BtorDialect, StandardOpsDialect>();
+  context->loadDialect<btor::BtorDialect, StandardOpsDialect, memref::MemRefDialect>();
 
   OwningOpRef<ModuleOp> owningModule(ModuleOp::create(FileLineColLoc::get(
       context, input->getBufferIdentifier(), /*line=*/0, /*column=*/0)));
 
-  Deserialize deserialize(context, input->getBufferIdentifier().str());
+  Deserialize deserialize(context, *owningModule, input->getBufferIdentifier().str());
   if (deserialize.parseModelIsSuccessful()) {
     OwningOpRef<FuncOp> mainFunc = deserialize.buildMainFunction();
     if (!mainFunc)
