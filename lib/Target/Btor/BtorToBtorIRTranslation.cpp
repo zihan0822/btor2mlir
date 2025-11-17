@@ -243,7 +243,7 @@ Operation *Deserialize::createMLIR(const Btor2Line *line,
     res = buildUnaryOp<btor::NotOp>(kids[0], lineId);
     break;
   case BTOR2_TAG_bad:
-    // res = buildAssertNotOp(kids[0], lineId);
+    res = buildAssertNotOp(kids[0], lineId);
     break;
   case BTOR2_TAG_redand:
     res = buildReductionOp<btor::RedAndOp>(kids[0], lineId);
